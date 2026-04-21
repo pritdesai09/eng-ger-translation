@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EN ↔ DE Neural Translator</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ── Background grid ── -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-en">EN</span>
+        <span class="logo-arrow">⇌</span>
+        <span class="logo-de">DE</span>
+      </div>
+      <h1 class="site-title">Neural Translator</h1>
+      <p class="site-subtitle">Seq2Seq LSTM &amp; Transformer — English ↔ German</p>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- ── Controls Row ── -->
+    <section class="controls-row">
+
+      <!-- Model Selector -->
+      <div class="control-group">
+        <label class="control-label">Model Architecture</label>
+        <div class="segmented" id="modelSegmented">
+          <button class="seg-btn active" data-value="transformer">
+            <span class="seg-icon">🤖</span>
+            <span class="seg-text">
+              <strong>Transformer</strong>
+              <small>Multi-Head Attention</small>
+            </span>
+          </button>
+          <button class="seg-btn" data-value="seq2seq">
+            <span class="seg-icon">🔗</span>
+            <span class="seg-text">
+              <strong>Seq2Seq LSTM</strong>
+              <small>No Attention</small>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Direction Toggle -->
+      <div class="control-group">
+        <label class="control-label">Translation Direction</label>
+        <div class="direction-toggle" id="directionToggle">
+          <span class="dir-label" id="srcLang">English</span>
+          <button class="swap-btn" id="swapBtn" title="Swap languages">⇌</button>
+          <span class="dir-label" id="tgtLang">German</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Translation Area ── -->
+    <section class="translation-area">
+
+      <!-- Source Panel -->
+      <div class="panel" id="srcPanel">
+        <div class="panel-header">
+          <span class="panel-lang" id="srcPanelLang">English</span>
+          <span class="panel-hint">Type or paste your text</span>
+        </div>
+        <textarea
+          class="panel-textarea"
+          id="srcText"
+          placeholder="Enter text to translate..."
+          maxlength="500"
+          spellcheck="false"
+        ></textarea>
+        <div class="panel-footer">
+          <span class="char-count" id="charCount">0 / 500</span>
+          <button class="clear-btn" id="clearBtn">✕ Clear</button>
+        </div>
+      </div>
+
+      <!-- Translate Button (center) -->
+      <div class="translate-center">
+        <button class="translate-btn" id="translateBtn">
+          <span class="btn-text">Translate</span>
+          <span class="btn-spinner" id="btnSpinner" style="display:none">⟳</span>
+        </button>
+      </div>
+
+      <!-- Target Panel -->
+      <div class="panel" id="tgtPanel">
+        <div class="panel-header">
+          <span class="panel-lang" id="tgtPanelLang">German</span>
+          <button class="copy-btn" id="copyBtn" title="Copy translation">⎘ Copy</button>
+        </div>
+        <div class="panel-output" id="outputText">
+          <span class="output-placeholder">Translation will appear here...</span>
+        </div>
+        <div class="panel-footer">
+          <span class="latency-badge" id="latencyBadge" style="display:none"></span>
+          <span class="model-badge" id="modelBadge" style="display:none"></span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Token Viewer ── -->
+    <section class="token-section" id="tokenSection" style="display:none">
+      <div class="token-header">
+        <span>Tokenized Input</span>
+        <button class="token-toggle" id="tokenToggle">Hide ▲</button>
+      </div>
+      <div class="token-list" id="tokenList"></div>
+    </section>
+
+    <!-- ── Model Info Cards ── -->
+    <section class="info-section">
+      <h2 class="info-heading">Architecture Overview</h2>
+      <div class="info-cards">
+
+        <div class="info-card" id="card-transformer">
+          <div class="card-accent"></div>
+          <div class="card-icon">🤖</div>
+          <h3>Transformer</h3>
+          <p class="card-desc">Multi-Head Self-Attention with Positional Encoding. Processes all tokens in parallel, capturing long-range dependencies.</p>
+          <ul class="card-specs">
+            <li><span>Layers</span><strong>3 Enc + 3 Dec</strong></li>
+            <li><span>Heads</span><strong>8</strong></li>
+            <li><span>d_model</span><strong>256</strong></li>
+            <li><span>Decoding</span><strong>Beam Search (k=4)</strong></li>
+          </ul>
+          <div class="bleu-display">
+            <span>BLEU EN→DE</span>
+            <strong id="bleu-tf-en-de">—</strong>
+          </div>
+        </div>
+
+        <div class="info-card" id="card-seq2seq">
+          <div class="card-accent"></div>
+          <div class="card-icon">🔗</div>
+          <h3>Seq2Seq LSTM</h3>
+          <p class="card-desc">Classic Encoder-Decoder with LSTM units. Context compressed into fixed-size hidden state, no attention mechanism.</p>
+          <ul class="card-specs">
+            <li><span>LSTM Layers</span><strong>2</strong></li>
+            <li><span>Hidden Dim</span><strong>512</strong></li>
+            <li><span>Embed Dim</span><strong>256</strong></li>
+            <li><span>Decoding</span><strong>Greedy</strong></li>
+          </ul>
+          <div class="bleu-display">
+            <span>BLEU EN→DE</span>
+            <strong id="bleu-seq2seq-en-de">—</strong>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── Error Banner ── -->
+    <div class="error-banner" id="errorBanner" style="display:none">
+      <span id="errorMsg"></span>
+      <button onclick="document.getElementById('errorBanner').style.display='none'">✕</button>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <p>Built with PyTorch · FastAPI · Vanilla JS &nbsp;|&nbsp; English ↔ German NMT</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
